@@ -1,6 +1,7 @@
 import json
 import xml.etree.ElementTree as Et
 from abc import abstractmethod, ABC
+from typing import Optional
 
 
 class DisplayStrategy(ABC):
@@ -73,14 +74,36 @@ class Book:
         return strategy.serialize(self.title, self.content)
 
 
-def main(book: Book, commands: list[tuple[str, str]]) -> None | str:
+def main(book: Book, commands: list[tuple[str, str]]) -> Optional[str]:
+    strategy_mapping = {
+        "display": {
+            "console": ConsoleDisplay(),
+            "reverse": ReverseDisplay(),
+        },
+        "print": {
+            "console": ConsolePrint(),
+            "reverse": ReversePrint(),
+        },
+        "serialize": {
+            "json": JSONSerialization(),
+            "xml": XMLSerialization(),
+        },
+    }
+
+    result = None
     for cmd, method_type in commands:
-        if cmd == "display":
-            book.display(method_type)
-        elif cmd == "print":
-            book.print_book(method_type)
-        elif cmd == "serialize":
-            return book.serialize(method_type)
+        if cmd in strategy_mapping and method_type in strategy_mapping[cmd]:
+            strategy = strategy_mapping[cmd][method_type]
+            if cmd == "display":
+                book.display(strategy)  # type: ignore
+            elif cmd == "print":
+                book.print_book(strategy)  # type: ignore
+            elif cmd == "serialize":
+                result = book.serialize(strategy)  # type: ignore
+        else:
+            raise ValueError(f"Unknown command or type: {cmd} - {method_type}")
+
+    return result
 
 
 if __name__ == "__main__":
